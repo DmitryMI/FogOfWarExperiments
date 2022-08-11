@@ -7,7 +7,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Kismet/KismetMaterialLibrary.h"
 #include "MaterialShared.h"
-#include "Components/DecalComponent.h"
+
 
 void AFoWTangentController::CreateVisionDrawingMaterial()
 {
@@ -47,13 +47,11 @@ void AFoWTangentController::RenderFogOfWar()
 
 	UKismetRenderingLibrary::ClearRenderTarget2D(GetWorld(), renderTarget, FLinearColor(1, 1, 1, 1));
 
-	UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(GetWorld(), renderTarget, canvas, size, context);
-
-	UDecalComponent* decal = Cast<UDecalComponent>(GetComponentByClass(UDecalComponent::StaticClass()));
+	UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(GetWorld(), renderTarget, canvas, size, context);	
 
 	FVector textureWorldLocation = GetFogOfWarActor()->GetActorLocation();
 
-	FVector textureWorldSize = FVector(decal->DecalSize.Z, decal->DecalSize.Y, decal->DecalSize.X);
+	FVector textureWorldSize = FVector(decalComponent->DecalSize.Z, decalComponent->DecalSize.Y, decalComponent->DecalSize.X);
 
 	textureWorldSize *= 2.0f;
 
@@ -69,22 +67,12 @@ void AFoWTangentController::RenderFogOfWar()
 		{
 			continue;
 		}
-		// float4 TextureWorldLocation (2D)
-		// float4 TextureWorldSize (2D)
-
-		// float VisionRadius
-		// float4 SourceLocationWorld (3D)
-		// 
-		// float BlockerRadius
-		// float4 BlockerLocationWorld (3D)	
 		
 		float visionRadius = source->GetVisionRange();
 		FVector sourceLocationWorld = source->GetOwner()->GetActorLocation();
-
-		//visionDrawingMaterialDynamic->SetScalarParameterValue("VisionRadius", visionRadius);		
+	
 		visionDrawingMaterialDynamic->SetScalarParameterByIndex(visionRadiusParameterIndex, visionRadius);
 
-		//visionDrawingMaterialDynamic->SetVectorParameterValue("SourceLocationWorld", sourceLocationWorld);
 		visionDrawingMaterialDynamic->SetVectorParameterByIndex(sourceLocationParameterIndex, FLinearColor(sourceLocationWorld));
 
 		for (auto blocker : GetVisionBlockers())
@@ -96,11 +84,9 @@ void AFoWTangentController::RenderFogOfWar()
 
 			float blockerRadius = blocker->GetVisionBlockRadius();
 			FVector blockerLocationWorld = blocker->GetOwner()->GetActorLocation();
-
-			//visionDrawingMaterialDynamic->SetScalarParameterValue("BlockerRadius", blockerRadius);			
+		
 			visionDrawingMaterialDynamic->SetScalarParameterByIndex(blockerRadiusParameterIndex, blockerRadius);
-
-			//visionDrawingMaterialDynamic->SetVectorParameterValue("BlockerLocationWorld", blockerLocationWorld);		
+	
 			visionDrawingMaterialDynamic->SetVectorParameterByIndex(blockerLocationParameterIndex, FLinearColor(blockerLocationWorld));
 
 			FVector2D screenPosition = FVector2D::ZeroVector;
@@ -126,4 +112,6 @@ void AFoWTangentController::BeginPlay()
 
 	//visionDrawingMaterialDynamic = UMaterialInstanceDynamic::Create(visionDrawingMaterial, this);
 	CreateVisionDrawingMaterial();
+
+	decalComponent = Cast<UDecalComponent>(GetComponentByClass(UDecalComponent::StaticClass()));
 }

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "FoWControllerBase.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Components/DecalComponent.h"
 #include "FoWTangentController.generated.h"
 
 /**
@@ -25,6 +26,9 @@ private:
 	// THIS UPROPERTY IS MANDATORY TO PREVENT UMaterialInstanceDynamic BEING GARBAGE COLLECTED!
 	UPROPERTY(Transient)
 	UMaterialInstanceDynamic* visionDrawingMaterialDynamic;
+
+	UPROPERTY(Transient)
+	UDecalComponent* decalComponent;
 
 	int32 visionRadiusParameterIndex;
 	int32 blockerRadiusParameterIndex;
