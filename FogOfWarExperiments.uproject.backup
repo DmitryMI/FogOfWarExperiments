@@ -1,0 +1,33 @@
+{
+    "FileVersion": 3,
+    "EngineAssociation": "5.0",
+    "Category": "",
+    "Description": "",
+    "Modules": [
+        {
+            "Name": "FogOfWarExperiments",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "AdditionalDependencies": [
+                "Engine"
+            ]
+        },
+        {
+            "Name": "FoWTangent",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "AdditionalDependencies": [
+                "FogOfWarExperiments"
+            ]
+        }
+    ],
+    "Plugins": [
+        {
+            "Name": "ModelingToolsEditorMode",
+            "Enabled": true,
+            "TargetAllowList": [
+                "Editor"
+            ]
+        }
+    ]
+}
