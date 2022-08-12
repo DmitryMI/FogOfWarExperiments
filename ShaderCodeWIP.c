@@ -35,12 +35,9 @@
 #define DISTANCE2D_SQ(v1, v2) ((v1 - v2).x * (v1 - v2).x + (v1 - v2).y * (v1 - v2).y)
 #define DISTANCE2D(v1, v2) (sqrt(DISTANCE2D_SQ(v1, v2)))
 
-#define UNWIND_ANGLE(angleRad) {while(angleRad > PI){angleRad -= TWO_PI;} while(angleRad < -PI){angleRad += TWO_PI;}}
+#define UNWIND_ANGLE(angleRad) {if(angleRad > PI){angleRad -= TWO_PI;} if(angleRad < -PI){angleRad += TWO_PI;}}
 
 #define IS_ANGLE_IN_SECTOR(result, a, min, max) {float minUnwinded = min - a; UNWIND_ANGLE(minUnwinded); float maxUnwinded = max - a; UNWIND_ANGLE(maxUnwinded); result = minUnwinded < 0 && maxUnwinded > 0;}
-
-#define IS_ANGLE_IN_SECTOR_ALT(result, a, min, max) {float minUnwinded = min - a; float maxUnwinded = max - a; result = minUnwinded < 0 && maxUnwinded > 0;}
-
 
 float2 textureSize2D = float2(TextureWorldSize.x, TextureWorldSize.y);
 float2 textureLocation2D = float2(TextureWorldLocation.x, TextureWorldLocation.y);
@@ -98,37 +95,11 @@ for(int s = 0; s < SourcesNum; s++)
 		
 		float blockerSourceAngularSize = asin(blockerRadius / sourceBlockerDistance);
 				
-		// Works before this line		
-
 		bool inSector = false;	
 		float sectorMin = blockerSourceAngle - blockerSourceAngularSize;
 		float sectorMax = blockerSourceAngle + blockerSourceAngularSize;
 		
-		//IS_ANGLE_IN_SECTOR(inSector, pixelSourceAngle, sectorMin, sectorMax);			
-		float minUnwinded = sectorMin - pixelSourceAngle;
-		float maxUnwinded = sectorMax - pixelSourceAngle;
-		
-		//UNWIND_ANGLE(minUnwinded);
-		if(minUnwinded > PI)
-		{
-			minUnwinded -= TWO_PI;
-		} 
-		if(minUnwinded < -PI)
-		{
-			minUnwinded += TWO_PI;
-		}		
-		
-		//UNWIND_ANGLE(maxUnwinded);
-		if(maxUnwinded > PI)
-		{
-			maxUnwinded -= TWO_PI;
-		} 
-		if(maxUnwinded < -PI)
-		{
-			maxUnwinded += TWO_PI;
-		}
-		
-		inSector = minUnwinded < 0 && maxUnwinded > 0;		
+		IS_ANGLE_IN_SECTOR(inSector, pixelSourceAngle, sectorMin, sectorMax);		
 		
 		if(inSector)
 		{
