@@ -35,9 +35,11 @@
 #define DISTANCE2D_SQ(v1, v2) ((v1 - v2).x * (v1 - v2).x + (v1 - v2).y * (v1 - v2).y)
 #define DISTANCE2D(v1, v2) (sqrt(DISTANCE2D_SQ(v1, v2)))
 
-#define UNWIND_ANGLE(angleRad) {LOOP while(angleRad > PI){angleRad -= TWO_PI;} LOOP while(angleRad < -PI){angleRad += TWO_PI;}}
+#define UNWIND_ANGLE(angleRad) {while(angleRad > PI){angleRad -= TWO_PI;} while(angleRad < -PI){angleRad += TWO_PI;}}
 
-#define IS_ANGLE_IN_SECTOR(result, a, min, max) {float minUnwinded = min - a;UNWIND_ANGLE(minUnwinded);float maxUnwinded = max - a;UNWIND_ANGLE(maxUnwinded);result = minUnwinded < 0 && maxUnwinded > 0;}
+#define IS_ANGLE_IN_SECTOR(result, a, min, max) {float minUnwinded = min - a; UNWIND_ANGLE(minUnwinded); float maxUnwinded = max - a; UNWIND_ANGLE(maxUnwinded); result = minUnwinded < 0 && maxUnwinded > 0;}
+
+#define IS_ANGLE_IN_SECTOR_ALT(result, a, min, max) {float minUnwinded = min - a; float maxUnwinded = max - a; result = minUnwinded < 0 && maxUnwinded > 0;}
 
 
 float2 textureSize2D = float2(TextureWorldSize.x, TextureWorldSize.y);
@@ -68,14 +70,7 @@ for(int s = 0; s < SourcesNum; s++)
 	float pixelSourceAngle = atan2(
 		pixelWorldLocation.y - sourceLocation.y,
 		pixelWorldLocation.x - sourceLocation.x
-		);
-		
-	if (abs(pixelSourceAngle - PI / 2.0f) < PI / 4.0f)
-	{
-		return RESULT_VISIBLE;
-	}
-		
-	continue;
+		);		
 	
 	bool isBlockedByAnyBlocker = false;
 	
@@ -84,7 +79,8 @@ for(int s = 0; s < SourcesNum; s++)
 	{
 		int blockerArrayIndex = SourcesNum + b;
 		
-		float2 blockerUv = INDEX_TO_UV(blockerArrayIndex, ArrayAsRGBATextureSize);
+		float2 blockerUv = INDEX_TO_UV(blockerArrayIndex, ArrayAsRGBATextureSize);		
+		
 		float4 blocker = Texture2DSample(ArrayAsRGBATexture, ArrayAsRGBATextureSampler, blockerUv);
 	
 		float2 blockerLocation = float2(blocker.x, blocker.y);
@@ -92,27 +88,23 @@ for(int s = 0; s < SourcesNum; s++)
 		
 		float sourceBlockerDistance = DISTANCE2D(blockerLocation, sourceLocation);
 		
-		float blockerSourceAngle = atan2(blockerLocation.y - sourceLocation.y, blockerLocation.x - sourceLocation.x);
-		
-		float blockerSourceAngularSize = asin(blockerRadius / sourceBlockerDistance);
-		
-		
 		if(pixelSourceDistance < sourceBlockerDistance)
 		{
 			// Pixel is not blocked for this source by this blocker
 			continue;
-		}
+		}		
 		
+		float blockerSourceAngle = atan2(blockerLocation.y - sourceLocation.y, blockerLocation.x - sourceLocation.x);
 		
-		bool inSector = false;
+		float blockerSourceAngularSize = asin(blockerRadius / sourceBlockerDistance);
+				
+		// Works before this line		
+
+		bool inSector = false;	
+		float sectorMin = blockerSourceAngle - blockerSourceAngularSize;
+		float sectorMax = blockerSourceAngle + blockerSourceAngularSize;
 		
-		IS_ANGLE_IN_SECTOR(
-			inSector,
-			pixelSourceAngle,
-			blockerSourceAngle - blockerSourceAngularSize,
-			blockerSourceAngle + blockerSourceAngularSize
-		);
-		
+		IS_ANGLE_IN_SECTOR_ALT(inSector, pixelSourceAngle, sectorMin, sectorMax);				
 		
 		if(inSector)
 		{
