@@ -63,19 +63,19 @@ for(int s = 0; s < SourcesNum; s++)
 	{
 		// Out of vision range for this source
 		continue;
-	}
-	else
-	{
-		return RESULT_VISIBLE;
-	}
-	
-	continue;
-	
+	}	
 	
 	float pixelSourceAngle = atan2(
 		pixelWorldLocation.y - sourceLocation.y,
 		pixelWorldLocation.x - sourceLocation.x
 		);
+		
+	if (abs(pixelSourceAngle - PI / 2.0f) < PI / 4.0f)
+	{
+		return RESULT_VISIBLE;
+	}
+		
+	continue;
 	
 	bool isBlockedByAnyBlocker = false;
 	
