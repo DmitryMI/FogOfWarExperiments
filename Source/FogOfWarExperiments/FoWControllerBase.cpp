@@ -169,17 +169,18 @@ void AFoWControllerBase::Tick(float DeltaTime)
 void AFoWControllerBase::RegisterVisionComponent(UFoWComponentBase* component)
 {
 	FString actorName;
-	component->GetOwner()->GetName(actorName);
-	UE_LOG(LogTemp, Log, TEXT("FoW Vision Component registered for actor %s"), *actorName);
+	component->GetOwner()->GetName(actorName);	
 
 	auto source = Cast<UFoWVisionSourceComponentBase>(component);
 	if (source != nullptr)
 	{
+		UE_LOG(LogTemp, Log, TEXT("FoW Vision Source registered for actor %s"), *actorName);
 		RegisterVisionSource(source);
 	}
 	auto blocker = Cast<UFoWVisionBlockerComponentBase>(component);
 	if (blocker != nullptr)
 	{
+		UE_LOG(LogTemp, Log, TEXT("FoW Vision Blocker registered for actor %s"), *actorName);
 		RegisterVisionBlocker(blocker);
 	}
 }
@@ -187,17 +188,18 @@ void AFoWControllerBase::RegisterVisionComponent(UFoWComponentBase* component)
 void AFoWControllerBase::UnregisterVisionComponent(UFoWComponentBase* component)
 {
 	FString actorName;
-	component->GetOwner()->GetName(actorName);
-	UE_LOG(LogTemp, Warning, TEXT("FoW Vision Component unregistered for actor %s"), *actorName);
+	component->GetOwner()->GetName(actorName);	
 
 	auto source = Cast<UFoWVisionSourceComponentBase>(component);
 	if (source != nullptr)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("FoW Vision Blocker unregistered for actor %s"), *actorName);
 		UnregisterVisionSource(source);
 	}
 	auto blocker = Cast<UFoWVisionBlockerComponentBase>(component);
-	if (source != nullptr)
+	if (blocker != nullptr)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("FoW Vision Blocker unregistered for actor %s"), *actorName);
 		UnregisterVisionBlocker(blocker);
 	}
 

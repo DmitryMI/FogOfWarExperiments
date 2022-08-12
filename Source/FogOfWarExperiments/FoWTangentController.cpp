@@ -6,98 +6,147 @@
 #include "Engine/Canvas.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Kismet/KismetMaterialLibrary.h"
+#include "Engine/Texture2D.h"
 #include "MaterialShared.h"
 
 
 void AFoWTangentController::CreateVisionDrawingMaterial()
 {
 	visionDrawingMaterialDynamic = UKismetMaterialLibrary::CreateDynamicMaterialInstance(GetWorld(), visionDrawingMaterial, "VisionDrawingMaterialInstanceDynamic");
+	
+	bool paramInitOk = true;
+	
+	paramInitOk &= visionDrawingMaterialDynamic->InitializeVectorParameterAndGetIndex("TextureWorldLocation", FLinearColor::Black, textureLocationParameterIndex);
+	paramInitOk &= visionDrawingMaterialDynamic->InitializeVectorParameterAndGetIndex("TextureWorldSize", FLinearColor::Black, textureSizeParameterIndex);
 
-	if (!visionDrawingMaterialDynamic->InitializeVectorParameterAndGetIndex("TextureWorldLocation", FLinearColor::Black, textureLocationParameterIndex))
+	paramInitOk &= visionDrawingMaterialDynamic->InitializeScalarParameterAndGetIndex("SourcesNum", 0, sourcesNumParameterIndex);
+	paramInitOk &= visionDrawingMaterialDynamic->InitializeScalarParameterAndGetIndex("BlockersNum", 0, blockersNumParameterIndex);
+
+	arrayAsRgbaTexture = UTexture2D::CreateTransient(arrayAsRgbaTextureSizeDefault.X, arrayAsRgbaTextureSizeDefault.Y, arrayAsRgbaTexturePixelFormat);
+	visionDrawingMaterialDynamic->SetTextureParameterValue("ArrayAsRGBATexture", arrayAsRgbaTexture);
+
+	paramInitOk &= visionDrawingMaterialDynamic->InitializeVectorParameterAndGetIndex("ArrayAsRGBATextureSize", FLinearColor::Black, arrayAsRGBATextureSizeParameterIndex);
+
+}
+
+void AFoWTangentController::FillBinaryArray(void* data)
+{
+	int itemsMax = arrayAsRgbaTexture->GetSizeX() * arrayAsRgbaTexture->GetSizeY();
+
+	if (arrayAsRgbaTexturePixelFormat == EPixelFormat::PF_A32B32G32R32F)
 	{
-		UE_LOG(LogTemp, Fatal, TEXT("Cannot initialize parameter TextureWorldLocation"));
+		FVectorAbgr<float>* pixelsAbgr = (FVectorAbgr<float>*)data;
+
+		int index = 0;
+		for (auto source : GetVisionSources())
+		{
+			FVector location = source->GetOwner()->GetActorLocation();
+			FVectorAbgr<float> pixel = FVectorAbgr<float>(location.X, location.Y, location.Z, source->GetVisionRange());
+			pixelsAbgr[index] = pixel;
+
+			index++;
+
+			if (index == itemsMax)
+			{
+				UE_LOG(LogTemp, Error, TEXT("Texture is too small to fit all Vision Sources!"))
+					break;
+			}
+		}
+
+		for (auto blocker : GetVisionBlockers())
+		{
+			FVector location = blocker->GetOwner()->GetActorLocation();
+			FVectorAbgr<float> pixel = FVectorAbgr<float>(location.X, location.Y, location.Z, blocker->GetVisionBlockRadius());
+			pixelsAbgr[index] = pixel;
+
+			index++;
+
+			if (index == itemsMax)
+			{
+				UE_LOG(LogTemp, Error, TEXT("Texture is too small to fit all Vision Blockers!"))
+					break;
+			}
+		}
+
+		//DumpArray(pixelsAbgr, index);
 	}
-	if (!visionDrawingMaterialDynamic->InitializeVectorParameterAndGetIndex("TextureWorldSize", FLinearColor::Black, textureSizeParameterIndex))
+	else
 	{
-		UE_LOG(LogTemp, Fatal, TEXT("Cannot initialize parameter TextureWorldSize"));
+		UE_LOG(LogTemp, Fatal, TEXT("This pixel format is not implemented!"));
 	}
-	if (!visionDrawingMaterialDynamic->InitializeVectorParameterAndGetIndex("SourceLocationWorld", FLinearColor::Black, sourceLocationParameterIndex))
+}
+
+void AFoWTangentController::FillArrayAsRgbaTexture()
+{
+	if (arrayAsRgbaTexture == nullptr)
 	{
-		UE_LOG(LogTemp, Fatal, TEXT("Cannot initialize parameter SourceLocationWorld"));
+		UE_LOG(LogTemp, Fatal, TEXT("arrayAsRgbaTexture is nullptr!"));
+		return;
 	}
-	if (!visionDrawingMaterialDynamic->InitializeVectorParameterAndGetIndex("BlockerLocationWorld", FLinearColor::Black, blockerLocationParameterIndex))
+
+	FTexture2DMipMap* MipMap = &(arrayAsRgbaTexture->GetPlatformData()->Mips[0]);
+	FByteBulkData* ImageData = &MipMap->BulkData;	
+
+	void* RawImageData = ImageData->Lock(LOCK_READ_WRITE);
+
+	FillBinaryArray(RawImageData);
+
+	
+
+	ImageData->Unlock();
+	RawImageData = nullptr;
+
+	arrayAsRgbaTexture->UpdateResource();
+}
+
+void AFoWTangentController::DumpTextureData()
+{
+	auto sources = GetVisionSources();
+	auto blockers = GetVisionBlockers();
+
+	int count = sources.Num() + blockers.Num();
+
+	FVectorAbgr<float>* data = new FVectorAbgr<float>[sources.Num() + blockers.Num()];
+
+	FillBinaryArray(data);
+
+	DumpArray(data, count);
+
+	delete[] data;
+}
+
+void AFoWTangentController::DumpArray(FVectorAbgr<float>* pixels, int count)
+{
+	FString msg = "Pixels: ";
+	for (int i = 0; i < count; i++)
 	{
-		UE_LOG(LogTemp, Fatal, TEXT("Cannot initialize parameter BlockerLocationWorld"));
+		auto pixel = pixels[i];
+		msg += FString::Printf(TEXT("%f, %f, %f, %f, "), pixel.A, pixel.B, pixel.G, pixel.R);
 	}
-	if (!visionDrawingMaterialDynamic->InitializeScalarParameterAndGetIndex("VisionRadius", 0, visionRadiusParameterIndex))
-	{
-		UE_LOG(LogTemp, Fatal, TEXT("Cannot initialize parameter VisionRadius"));
-	}
-	if (!visionDrawingMaterialDynamic->InitializeScalarParameterAndGetIndex("BlockerRadius", 0, blockerRadiusParameterIndex))
-	{
-		UE_LOG(LogTemp, Fatal, TEXT("Cannot initialize parameter BlockerRadius"));
-	}
+
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *msg);
 }
 
 void AFoWTangentController::RenderFogOfWar()
 {
-	UCanvas* canvas;
-	FVector2D size;
-	FDrawToRenderTargetContext context;
-
-	UKismetRenderingLibrary::ClearRenderTarget2D(GetWorld(), renderTarget, FLinearColor(1, 1, 1, 1));
-
-	UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(GetWorld(), renderTarget, canvas, size, context);	
-
 	FVector textureWorldLocation = GetFogOfWarActor()->GetActorLocation();
 
 	FVector textureWorldSize = FVector(decalComponent->DecalSize.Z, decalComponent->DecalSize.Y, decalComponent->DecalSize.X);
 
 	textureWorldSize *= 2.0f;
 
-	//visionDrawingMaterialDynamic->SetVectorParameterValue("TextureWorldLocation", textureWorldLocation);
 	visionDrawingMaterialDynamic->SetVectorParameterByIndex(textureLocationParameterIndex, FLinearColor(textureWorldLocation));
-
-	//visionDrawingMaterialDynamic->SetVectorParameterValue("TextureWorldSize", textureWorldSize);
 	visionDrawingMaterialDynamic->SetVectorParameterByIndex(textureSizeParameterIndex, FLinearColor(textureWorldSize));
 
-	for (auto source : GetVisionSources())
-	{
-		if (source == nullptr)
-		{
-			continue;
-		}
-		
-		float visionRadius = source->GetVisionRange();
-		FVector sourceLocationWorld = source->GetOwner()->GetActorLocation();
+	FLinearColor arrSize = FLinearColor(arrayAsRgbaTextureSizeDefault.X, arrayAsRgbaTextureSizeDefault.Y, 0, 0);
+	visionDrawingMaterialDynamic->SetVectorParameterByIndex(arrayAsRGBATextureSizeParameterIndex, arrSize);
 	
-		visionDrawingMaterialDynamic->SetScalarParameterByIndex(visionRadiusParameterIndex, visionRadius);
+	visionDrawingMaterialDynamic->SetScalarParameterByIndex(sourcesNumParameterIndex, GetVisionSources().Num());
+	visionDrawingMaterialDynamic->SetScalarParameterByIndex(blockersNumParameterIndex, GetVisionBlockers().Num());
 
-		visionDrawingMaterialDynamic->SetVectorParameterByIndex(sourceLocationParameterIndex, FLinearColor(sourceLocationWorld));
+	// We do not set texture parameter here, it is only done once during BeginPlay()
 
-		for (auto blocker : GetVisionBlockers())
-		{
-			if (blocker == nullptr)
-			{
-				continue;
-			}
-
-			float blockerRadius = blocker->GetVisionBlockRadius();
-			FVector blockerLocationWorld = blocker->GetOwner()->GetActorLocation();
-		
-			visionDrawingMaterialDynamic->SetScalarParameterByIndex(blockerRadiusParameterIndex, blockerRadius);
-	
-			visionDrawingMaterialDynamic->SetVectorParameterByIndex(blockerLocationParameterIndex, FLinearColor(blockerLocationWorld));
-
-			FVector2D screenPosition = FVector2D::ZeroVector;
-			FVector2D screenSize = FVector2D(renderTarget->SizeX, renderTarget->SizeY);
-			FVector2D coordinatePosition = FVector2D::ZeroVector;
-
-			canvas->K2_DrawMaterial(visionDrawingMaterialDynamic, screenPosition, screenSize, coordinatePosition);
-		}
-	}
-
-	UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(GetWorld(), context);
+	FillArrayAsRgbaTexture();
 }
 
 void AFoWTangentController::BeginPlay()
@@ -110,8 +159,9 @@ void AFoWTangentController::BeginPlay()
 		return;
 	}
 
-	//visionDrawingMaterialDynamic = UMaterialInstanceDynamic::Create(visionDrawingMaterial, this);
 	CreateVisionDrawingMaterial();
 
 	decalComponent = Cast<UDecalComponent>(GetComponentByClass(UDecalComponent::StaticClass()));
+
+	decalComponent->SetMaterial(0, visionDrawingMaterialDynamic);
 }

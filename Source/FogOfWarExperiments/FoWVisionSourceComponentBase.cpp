@@ -18,12 +18,6 @@ UFoWVisionSourceComponentBase::UFoWVisionSourceComponentBase()
 void UFoWVisionSourceComponentBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	auto controller = GetFoWController();
-	if (controller != nullptr)
-	{
-		controller->RegisterVisionSource(this);
-	}
 }
 
 void UFoWVisionSourceComponentBase::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
