@@ -104,7 +104,31 @@ for(int s = 0; s < SourcesNum; s++)
 		float sectorMin = blockerSourceAngle - blockerSourceAngularSize;
 		float sectorMax = blockerSourceAngle + blockerSourceAngularSize;
 		
-		IS_ANGLE_IN_SECTOR_ALT(inSector, pixelSourceAngle, sectorMin, sectorMax);				
+		//IS_ANGLE_IN_SECTOR(inSector, pixelSourceAngle, sectorMin, sectorMax);			
+		float minUnwinded = sectorMin - pixelSourceAngle;
+		float maxUnwinded = sectorMax - pixelSourceAngle;
+		
+		//UNWIND_ANGLE(minUnwinded);
+		if(minUnwinded > PI)
+		{
+			minUnwinded -= TWO_PI;
+		} 
+		if(minUnwinded < -PI)
+		{
+			minUnwinded += TWO_PI;
+		}		
+		
+		//UNWIND_ANGLE(maxUnwinded);
+		if(maxUnwinded > PI)
+		{
+			maxUnwinded -= TWO_PI;
+		} 
+		if(maxUnwinded < -PI)
+		{
+			maxUnwinded += TWO_PI;
+		}
+		
+		inSector = minUnwinded < 0 && maxUnwinded > 0;		
 		
 		if(inSector)
 		{
