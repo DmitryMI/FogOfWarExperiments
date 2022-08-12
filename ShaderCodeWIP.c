@@ -62,13 +62,14 @@ for(int s = 0; s < SourcesNum; s++)
 	if(sourceVisionRadius < pixelSourceDistance)
 	{
 		// Out of vision range for this source
-		//continue;
-		return RESULT_INVISIBLE;
+		continue;
 	}
 	else
 	{
 		return RESULT_VISIBLE;
 	}
+	
+	continue;
 	
 	
 	float pixelSourceAngle = atan2(
