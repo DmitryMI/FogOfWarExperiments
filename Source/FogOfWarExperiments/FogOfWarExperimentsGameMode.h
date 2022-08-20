@@ -13,6 +13,10 @@ class AFogOfWarExperimentsGameMode : public AGameModeBase
 
 public:
 	AFogOfWarExperimentsGameMode();
+
+	virtual void BeginPlay() override;
+
+	
 };
 
 

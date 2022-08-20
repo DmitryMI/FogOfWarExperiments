@@ -24,3 +24,9 @@ AFogOfWarExperimentsGameMode::AFogOfWarExperimentsGameMode()
 		PlayerControllerClass = PlayerControllerBPClass.Class;
 	}
 }
+
+void AFogOfWarExperimentsGameMode::BeginPlay()
+{	
+	
+}
+

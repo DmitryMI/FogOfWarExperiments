@@ -6,12 +6,27 @@
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "FogOfWarExperimentsCharacter.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Engine/World.h"
 
 AFogOfWarExperimentsPlayerController::AFogOfWarExperimentsPlayerController()
 {
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
+}
+
+
+void AFogOfWarExperimentsPlayerController::SetStatFps(bool enabled)
+{
+	UGameViewportClient* viewportClient = GetWorld()->GetGameViewport();
+	bool bFpsCounterEnabled = viewportClient->IsStatEnabled(TEXT("FPS"));
+
+	if (bFpsCounterEnabled != enabled)
+	{
+		FString command = TEXT("stat fps");
+		//GetWorld()->Exec(GetWorld(), *command);
+		UKismetSystemLibrary::ExecuteConsoleCommand(GetWorld(), command, this);
+	}
 }
 
 void AFogOfWarExperimentsPlayerController::PlayerTick(float DeltaTime)
